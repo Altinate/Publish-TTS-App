@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const text = textInput.value.trim();
         const voice = voiceSelect.value;
         const rateNum = parseInt(rateSlider.value, 10);
-        const rate = `${rateNum > 0 ? '+' : ''}${rateNum}%`;
+        const rate = `${rateNum >= 0 ? '+' : ''}${rateNum}%`;
         const pitch = "+0Hz";
 
         if (!text) {
