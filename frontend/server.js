@@ -14,20 +14,20 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Proxy endpoint for TTS generation
 app.post('/api/tts', async (req, res) => {
-    const { text, voice, rate, pitch } = req.body;
+    const { text, voice, rate, pitch, colab_url } = req.body;
     
     if (!text) {
         return res.status(400).json({ error: "Text is required" });
     }
 
-    const colabUrl = process.env.COLAB_API_URL;
+    const targetColabUrl = colab_url || process.env.COLAB_API_URL;
     
-    if (!colabUrl) {
-        return res.status(500).json({ error: "COLAB_API_URL is not configured in .env" });
+    if (!targetColabUrl) {
+        return res.status(500).json({ error: "COLAB_API_URL is not configured and no URL was provided by the frontend." });
     }
 
     try {
-        const targetEndpoint = `${colabUrl.replace(/\/$/, '')}/generate`;
+        const targetEndpoint = `${targetColabUrl.replace(/\/$/, '')}/generate`;
         
         // Request the audio from Colab
         const response = await axios.post(targetEndpoint, { text, voice, rate, pitch }, {
@@ -54,6 +54,27 @@ app.post('/api/tts', async (req, res) => {
         } else {
              res.status(500).json({ error: "Failed to connect to Colab API. Make sure it is running and the URL is correct." });
         }
+    }
+});
+
+// Health check proxy endpoint
+app.post('/api/health', async (req, res) => {
+    const { colab_url } = req.body;
+    const targetUrl = colab_url || process.env.COLAB_API_URL;
+    
+    if (!targetUrl) {
+        return res.status(400).json({ status: "error", message: "No Colab URL provided." });
+    }
+    
+    try {
+        const targetEndpoint = targetUrl.replace(/\/$/, '');
+        const response = await axios.get(targetEndpoint, { timeout: 10000 });
+        if (response.data && response.data.status === 'ok') {
+            return res.json({ status: "ok" });
+        }
+        res.status(500).json({ status: "error" });
+    } catch (error) {
+        res.status(500).json({ status: "error", message: error.message });
     }
 });
 

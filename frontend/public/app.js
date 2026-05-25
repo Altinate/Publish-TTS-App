@@ -9,12 +9,66 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorMessage = document.getElementById('error-message');
     const errorText = document.getElementById('error-text');
     
+    // Connection UI elements
+    const colabUrlInput = document.getElementById('colabUrlInput');
+    const refreshColabBtn = document.getElementById('refreshColabBtn');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    
     const btnText = document.getElementById('btn-text');
     const btnIcon = document.getElementById('btn-icon');
     const btnSpinner = document.getElementById('btn-spinner');
 
     let isGenerating = false;
     let historyCounter = 0;
+
+    // Load saved Colab URL from local storage
+    const savedUrl = localStorage.getItem('colabUrl');
+    if (savedUrl && colabUrlInput) {
+        colabUrlInput.value = savedUrl;
+    }
+
+    // Function to ping health endpoint
+    async function updateConnectionStatus() {
+        if (!statusDot || !statusText) return;
+        
+        statusDot.className = "w-2 h-2 rounded-full bg-yellow-500 animate-pulse shadow-[0_0_8px_rgba(234,179,8,0.6)]";
+        statusText.textContent = "Checking connection...";
+        statusText.className = "text-xs text-gray-400 font-medium tracking-wide";
+        
+        const colab_url = colabUrlInput ? colabUrlInput.value.trim() : "";
+        if (colab_url) {
+            localStorage.setItem('colabUrl', colab_url);
+        }
+
+        try {
+            const response = await fetch('/api/health', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ colab_url })
+            });
+
+            if (response.ok) {
+                statusDot.className = "w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]";
+                statusText.textContent = "Colab Connected";
+                statusText.className = "text-xs text-green-400 font-medium tracking-wide";
+            } else {
+                throw new Error("Bad response");
+            }
+        } catch (e) {
+            statusDot.className = "w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]";
+            statusText.textContent = "Disconnected";
+            statusText.className = "text-xs text-red-400 font-medium tracking-wide";
+        }
+    }
+
+    // Ping on load
+    updateConnectionStatus();
+
+    // Ping on refresh button click
+    if (refreshColabBtn) {
+        refreshColabBtn.addEventListener('click', updateConnectionStatus);
+    }
 
     // Update slider value display
     if (rateSlider && rateValueDisplay) {
@@ -33,6 +87,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const rateNum = parseInt(rateSlider.value, 10);
         const rate = `${rateNum >= 0 ? '+' : ''}${rateNum}%`;
         const pitch = "+0Hz";
+        const colab_url = colabUrlInput ? colabUrlInput.value.trim() : "";
+        
+        if (colab_url) {
+            localStorage.setItem('colabUrl', colab_url);
+        }
 
         if (!text) {
             showError("Please enter some text to generate audio.");
@@ -50,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ text, voice, rate, pitch })
+                body: JSON.stringify({ text, voice, rate, pitch, colab_url })
             });
 
             if (!response.ok) {

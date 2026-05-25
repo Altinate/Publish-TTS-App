@@ -49,10 +49,18 @@
             </div>
             <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">Neural Voice Studio</h1>
         </div>
-        <div class="text-sm text-slate-400 flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full border border-white/10">
-            <div id="status-indicator" class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-            <span>Colab Connected</span>
-        </div>
+        <div class="flex flex-col items-end gap-2">
+                <div class="flex items-center gap-2">
+                    <input type="text" id="colabUrlInput" placeholder="https://....ngrok-free.app" class="bg-gray-800 text-sm text-gray-200 border border-gray-700 rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 w-64 transition-all">
+                    <button id="refreshColabBtn" class="bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg border border-gray-700 transition-colors text-sm font-medium flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    </button>
+                </div>
+                <div class="flex items-center gap-2 px-1">
+                    <div id="statusDot" class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse shadow-[0_0_8px_rgba(234,179,8,0.6)]"></div>
+                    <span id="statusText" class="text-xs text-gray-400 font-medium tracking-wide">Checking connection...</span>
+                </div>
+            </div>
     </header>
 
     <!-- Main Content -->
