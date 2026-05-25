@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Voice Studio</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            900: '#4c1d95',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white relative overflow-x-hidden">
+    
+    <!-- Background Elements -->
+    <div class="fixed top-[-20%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-brand-900/30 blur-[120px] pointer-events-none"></div>
+    <div class="fixed bottom-[-20%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-indigo-900/20 blur-[120px] pointer-events-none"></div>
+
+    <!-- Header -->
+    <header class="w-full py-6 px-8 flex items-center justify-between z-10 glass-nav border-b border-white/5">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
+                <i class="fa-solid fa-microphone-lines text-white text-xl"></i>
+            </div>
+            <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">Neural Voice Studio</h1>
+        </div>
+        <div class="text-sm text-slate-400 flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full border border-white/10">
+            <div id="status-indicator" class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+            <span>Colab Connected</span>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow flex flex-col lg:flex-row gap-8 p-8 max-w-7xl mx-auto w-full z-10 relative">
+        
+        <!-- Left Column: Controls -->
+        <section class="flex-1 flex flex-col gap-6">
+            <div class="glass-panel p-8 rounded-2xl flex flex-col gap-6 relative overflow-hidden group">
+                <div class="absolute inset-0 bg-gradient-to-b from-white/[0.03] to-transparent pointer-events-none"></div>
+                
+                <div class="flex flex-col gap-2">
+                    <label for="text-input" class="text-sm font-medium text-slate-300 flex items-center gap-2">
+                        <i class="fa-regular fa-keyboard text-brand-500"></i> Text to synthesize
+                    </label>
+                    <textarea id="text-input" rows="6" class="w-full bg-slate-900/50 border border-white/10 rounded-xl p-4 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all resize-none shadow-inner" placeholder="Enter the text you want the AI to speak..."></textarea>
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <label for="voice-select" class="text-sm font-medium text-slate-300 flex items-center gap-2">
+                        <i class="fa-solid fa-users text-brand-500"></i> Voice Model
+                    </label>
+                    <div class="relative">
+                        <select id="voice-select" class="w-full bg-slate-900/50 border border-white/10 rounded-xl p-4 appearance-none text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all cursor-pointer">
+                            <option value="th-TH-NiwatNeural">นิวัฒน์ (ชาย - พากย์หนัง/เล่าเรื่อง)</option>
+                            <option value="th-TH-PremwadeeNeural">เปรมวดี (หญิง - อารมณ์ละคร/นิยาย)</option>
+                        </select>
+                        <div class="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none text-slate-400">
+                            <i class="fa-solid fa-chevron-down text-sm"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center justify-between">
+                        <label for="rate-slider" class="text-sm font-medium text-slate-300 flex items-center gap-2">
+                            <i class="fa-solid fa-gauge-high text-brand-500"></i> Speed Rate (Pacing)
+                        </label>
+                        <span id="rate-value" class="text-xs text-brand-400 font-semibold bg-brand-500/10 px-2 py-1 rounded">0%</span>
+                    </div>
+                    <input type="range" id="rate-slider" min="-20" max="20" value="0" class="w-full accent-brand-500 bg-slate-800 rounded-lg appearance-none h-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all">
+                </div>
+
+                <button id="generate-btn" class="mt-4 w-full bg-brand-600 hover:bg-brand-500 text-white font-semibold py-4 rounded-xl transition-all duration-300 transform active:scale-[0.98] shadow-lg shadow-brand-500/25 flex items-center justify-center gap-3 group-hover:shadow-brand-500/40">
+                    <span id="btn-text">Generate Audio</span>
+                    <i id="btn-icon" class="fa-solid fa-wand-magic-sparkles"></i>
+                    <i id="btn-spinner" class="fa-solid fa-circle-notch fa-spin hidden"></i>
+                </button>
+                
+                <div id="error-message" class="hidden mt-2 p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-sm flex items-start gap-3">
+                    <i class="fa-solid fa-circle-exclamation mt-0.5"></i>
+                    <span id="error-text">An error occurred.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Column: History -->
+        <section class="flex-1 flex flex-col gap-6 lg:max-w-md">
+            <div class="glass-panel p-6 rounded-2xl flex-grow flex flex-col h-full max-h-[calc(100vh-140px)]">
+                <h2 class="text-xl font-semibold mb-6 flex items-center gap-3">
+                    <i class="fa-solid fa-clock-rotate-left text-brand-500"></i> Generation History
+                </h2>
+                
+                <div id="history-list" class="flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar flex-grow">
+                    <!-- History items will be injected here -->
+                    <div id="empty-state" class="flex flex-col items-center justify-center h-40 text-slate-500 gap-3 text-center opacity-70">
+                        <i class="fa-solid fa-ghost text-3xl"></i>
+                        <p class="text-sm">No audio generated yet.<br>Your creations will appear here.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
