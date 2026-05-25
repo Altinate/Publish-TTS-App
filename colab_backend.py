@@ -65,24 +65,18 @@ def health_check():
 
 if __name__ == "__main__":
     from pyngrok import ngrok
-    
-    # Try to get authtoken from standard environment variable
-    authtoken = os.environ.get("NGROK_AUTHTOKEN")
-    
-    # If not found, try to fetch from Google Colab's secret manager
-    if not authtoken:
-        try:
-            from google.colab import userdata
-            authtoken = userdata.get("NGROK_AUTHTOKEN")
-        except ImportError:
-            pass
-        except Exception:
-            pass
+    try:
+        from google.colab import userdata
+        authtoken = userdata.get("NGROK_AUTHTOKEN")
+    except ImportError:
+        authtoken = os.environ.get("NGROK_AUTHTOKEN")
+    except Exception:
+        authtoken = None
 
     if authtoken:
         ngrok.set_auth_token(authtoken)
     else:
-        print("⚠️ Warning: No NGROK_AUTHTOKEN found in environment or Colab secrets. ngrok might fail or have session limits.")
+        print("⚠️ Warning: No NGROK_AUTHTOKEN found in Colab secrets. ngrok might fail or have session limits.")
 
     # Expose the FastAPI port via ngrok
     public_url = ngrok.connect(8000).public_url
