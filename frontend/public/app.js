@@ -1,7 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     const generateBtn = document.getElementById('generate-btn');
     const textInput = document.getElementById('text-input');
-    const voiceSelect = document.getElementById('voice-select');
+    const languageSelect = document.getElementById('languageSelect');
+    const voiceSelect = document.getElementById('voiceSelect');
     const rateSlider = document.getElementById('rate-slider');
     const rateValueDisplay = document.getElementById('rate-value');
     const historyList = document.getElementById('history-list');
@@ -10,8 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorText = document.getElementById('error-text');
     
     // Connection UI elements
-    const colabUrlInput = document.getElementById('colabUrlInput');
-    const refreshColabBtn = document.getElementById('refreshColabBtn');
     const statusDot = document.getElementById('statusDot');
     const statusText = document.getElementById('statusText');
     
@@ -22,12 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let isGenerating = false;
     let historyCounter = 0;
 
-    // Load saved Colab URL from local storage
-    const savedUrl = localStorage.getItem('colabUrl');
-    if (savedUrl && colabUrlInput) {
-        colabUrlInput.value = savedUrl;
-    }
-
     // Function to ping health endpoint
     async function updateConnectionStatus() {
         if (!statusDot || !statusText) return;
@@ -36,21 +29,16 @@ document.addEventListener('DOMContentLoaded', () => {
         statusText.textContent = "Checking connection...";
         statusText.className = "text-xs text-gray-400 font-medium tracking-wide";
         
-        const colab_url = colabUrlInput ? colabUrlInput.value.trim() : "";
-        if (colab_url) {
-            localStorage.setItem('colabUrl', colab_url);
-        }
-
         try {
             const response = await fetch('/api/health', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ colab_url })
+                body: JSON.stringify({})
             });
 
             if (response.ok) {
                 statusDot.className = "w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]";
-                statusText.textContent = "Colab Connected";
+                statusText.textContent = "Backend Connected";
                 statusText.className = "text-xs text-green-400 font-medium tracking-wide";
             } else {
                 throw new Error("Bad response");
@@ -65,10 +53,82 @@ document.addEventListener('DOMContentLoaded', () => {
     // Ping on load
     updateConnectionStatus();
 
-    // Ping on refresh button click
-    if (refreshColabBtn) {
-        refreshColabBtn.addEventListener('click', updateConnectionStatus);
+    let masterVoiceList = [];
+    let voicesByLanguage = {};
+
+    async function loadVoices() {
+        try {
+            const response = await fetch('/api/voices');
+            if (!response.ok) throw new Error("Failed to fetch voices");
+            const voices = await response.json();
+            
+            masterVoiceList = voices;
+            voicesByLanguage = {};
+            
+            // Group voices by locale
+            voices.forEach(voice => {
+                const locale = voice.Locale;
+                if (!voicesByLanguage[locale]) {
+                    voicesByLanguage[locale] = [];
+                }
+                voicesByLanguage[locale].push(voice);
+            });
+            
+            // Populate language select
+            const locales = Object.keys(voicesByLanguage).sort();
+            languageSelect.innerHTML = '';
+            
+            const getLanguageName = (localeCode) => {
+                try {
+                    const displayNames = new Intl.DisplayNames(['en'], { type: 'language' });
+                    return displayNames.of(localeCode) + ` (${localeCode})`;
+                } catch (e) {
+                    return localeCode;
+                }
+            };
+            
+            locales.forEach(locale => {
+                const option = document.createElement('option');
+                option.value = locale;
+                option.textContent = getLanguageName(locale);
+                languageSelect.appendChild(option);
+            });
+            
+            // Default to Thai (th-TH)
+            if (locales.includes('th-TH')) {
+                languageSelect.value = 'th-TH';
+            } else if (locales.length > 0) {
+                languageSelect.value = locales[0];
+            }
+            
+            updateVoiceSelect();
+            
+        } catch (error) {
+            console.error("Error loading voices:", error);
+            languageSelect.innerHTML = '<option value="">Error loading languages</option>';
+            voiceSelect.innerHTML = '<option value="">Error loading voices</option>';
+        }
     }
+
+    function updateVoiceSelect() {
+        const selectedLocale = languageSelect.value;
+        const availableVoices = voicesByLanguage[selectedLocale] || [];
+        
+        voiceSelect.innerHTML = '';
+        availableVoices.forEach(voice => {
+            const option = document.createElement('option');
+            option.value = voice.ShortName;
+            option.textContent = `${voice.ShortName} (${voice.Gender})`;
+            voiceSelect.appendChild(option);
+        });
+    }
+
+    if(languageSelect) {
+        languageSelect.addEventListener('change', updateVoiceSelect);
+    }
+    
+    // Call loadVoices
+    loadVoices();
 
     // Update slider value display
     if (rateSlider && rateValueDisplay) {
@@ -87,11 +147,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const rateNum = parseInt(rateSlider.value, 10);
         const rate = `${rateNum >= 0 ? '+' : ''}${rateNum}%`;
         const pitch = "+0Hz";
-        const colab_url = colabUrlInput ? colabUrlInput.value.trim() : "";
-        
-        if (colab_url) {
-            localStorage.setItem('colabUrl', colab_url);
-        }
 
         if (!text) {
             showError("Please enter some text to generate audio.");
@@ -109,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ text, voice, rate, pitch, colab_url })
+                body: JSON.stringify({ text, voice, rate, pitch })
             });
 
             if (!response.ok) {
@@ -128,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
             textInput.value = '';
 
         } catch (error) {
-            showError(error.message || "Failed to generate audio. Please check if the Colab backend is running and the URL is correctly set.");
+            showError(error.message || "Failed to generate audio. Please check if the Backend is running.");
         } finally {
             setLoadingState(false);
         }

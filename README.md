@@ -1,51 +1,55 @@
-# Text-to-Speech (TTS) Web Application
+# Local AI Voice Studio
 
-A clean, modern Text-to-Speech web application that offloads heavy model inference (like Coqui TTS or Bark) to a Google Colab notebook.
+A clean, modern Text-to-Speech web application running fully natively on your local machine using Edge-TTS, Express, and FastAPI.
 
 ## Architecture
-1. **Frontend & Local Proxy**: A Node.js (Express) server that serves a beautiful, responsive UI (HTML/Tailwind/Vanilla JS) and acts as a proxy to avoid CORS issues when communicating with Colab.
-2. **Backend (Google Colab)**: A FastAPI Python script exposed securely via `pyngrok`. It receives text and returns the generated audio file.
+1. **Frontend & Local Proxy**: A Node.js (Express) server on Port 3010 that serves the UI (HTML/Tailwind/Vanilla JS) and proxies requests to the Python backend to avoid CORS issues.
+2. **FastAPI Backend**: A Python backend running natively on Port 8000 using Uvicorn. It processes the TTS requests using the high-quality `edge-tts` engine.
 
 ---
 
 ## 🚀 Setup Instructions
 
-### Part 1: Start the Backend (Google Colab)
-1. Open Google Colab and create a new notebook.
-2. Ensure you are using a GPU runtime (`Runtime > Change runtime type > Hardware accelerator: GPU`).
-3. Copy the contents of `colab_backend.py` into a single notebook cell.
-4. If you don't have an ngrok account, sign up at [ngrok.com](https://ngrok.com/) to get your authtoken.
-5. In the notebook, paste your authtoken in the `NGROK_AUTHTOKEN` variable or set it via Colab's secret manager.
-6. Run the cell. 
-7. Once the cell is running, it will output a **Public API URL** (e.g., `https://1234-abcd.ngrok-free.app`). **Copy this URL**.
+### 1. Requirements
+Ensure you have the following installed on your machine:
+- Node.js (v16+)
+- Python 3.8+
+- npm and pip
 
-### Part 2: Start the Frontend (Local Web Server)
-1. Navigate to the `frontend` directory:
+### 2. Configure Environment
+1. Copy the `.env.example` file to `.env`:
    ```bash
-   cd frontend
-   ```
-2. Install the necessary dependencies:
-   ```bash
-   npm install
-   ```
-3. Go back to the project root and create a `.env` file by copying the example:
-   ```bash
-   cd ..
    cp .env.example .env
    ```
-4. Open the `.env` file at the root level and replace the `COLAB_API_URL` value with the URL you copied from Colab.
-5. Start the application (we recommend using the PM2 deployment script):
+2. The `BACKEND_API_URL` is set to `http://127.0.0.1:8000` by default, pointing to your local Python backend.
+
+### 3. Quick Start (via Deployment Script)
+The easiest way to start the entire stack is by using the provided deployment script. This installs both Node and Python dependencies and manages both processes via PM2.
+
+1. Ensure PM2 is installed globally:
+   ```bash
+   npm install -g pm2
+   ```
+2. Run the deployment script:
    ```bash
    ./scripts/deploy.sh
    ```
-6. Open your browser and go to `http://localhost:3010`.
+3. Open your browser and go to `http://localhost:3010`. Both the Express server and the Python API will run silently in the background!
 
----
+### Manual Start (Without PM2)
+If you prefer not to use PM2, you can start the servers manually in two separate terminal windows:
 
-## Customizing Models in Colab
-By default, `colab_backend.py` uses `gTTS` (Google Text-to-Speech) as a fast, lightweight placeholder for testing the connection. 
+**Terminal 1 (Backend):**
+```bash
+cd backend
+pip install -r requirements.txt --break-system-packages
+python3 -m uvicorn main:app --host 127.0.0.1 --port 8000
+```
 
-To use heavy models like **Coqui TTS**:
-1. Check the comments in `colab_backend.py`.
-2. Install TTS in Colab: `!pip install TTS`
-3. Replace the `gTTS` generation logic with the Coqui TTS inference code provided in the comments.
+**Terminal 2 (Frontend):**
+```bash
+cd frontend
+npm install
+cd ..
+node frontend/server.js
+```

@@ -14,20 +14,20 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Proxy endpoint for TTS generation
 app.post('/api/tts', async (req, res) => {
-    const { text, voice, rate, pitch, colab_url } = req.body;
+    const { text, voice, rate, pitch } = req.body;
     
     if (!text) {
         return res.status(400).json({ error: "Text is required" });
     }
 
-    const targetColabUrl = colab_url || process.env.COLAB_API_URL;
+    const targetBackendUrl = process.env.BACKEND_API_URL;
     
-    if (!targetColabUrl) {
-        return res.status(500).json({ error: "COLAB_API_URL is not configured and no URL was provided by the frontend." });
+    if (!targetBackendUrl) {
+        return res.status(500).json({ error: "BACKEND_API_URL is not configured and no URL was provided by the frontend." });
     }
 
     try {
-        const targetEndpoint = `${targetColabUrl.replace(/\/$/, '')}/generate`;
+        const targetEndpoint = `${targetBackendUrl.replace(/\/$/, '')}/generate`;
         
         // Request the audio from Colab
         const response = await axios.post(targetEndpoint, { text, voice, rate, pitch }, {
@@ -57,13 +57,29 @@ app.post('/api/tts', async (req, res) => {
     }
 });
 
+app.get('/api/voices', async (req, res) => {
+    const targetBackendUrl = process.env.BACKEND_API_URL;
+    
+    if (!targetBackendUrl) {
+        return res.status(500).json({ error: "BACKEND_API_URL is not configured." });
+    }
+
+    try {
+        const targetEndpoint = `${targetBackendUrl.replace(/\/$/, '')}/api/voices`;
+        const response = await axios.get(targetEndpoint, { timeout: 10000 });
+        res.json(response.data);
+    } catch (error) {
+        console.error("Error connecting to backend for voices:", error.message);
+        res.status(500).json({ error: "Failed to fetch voices from backend." });
+    }
+});
+
 // Health check proxy endpoint
 app.post('/api/health', async (req, res) => {
-    const { colab_url } = req.body;
-    const targetUrl = colab_url || process.env.COLAB_API_URL;
+    const targetUrl = process.env.BACKEND_API_URL;
     
     if (!targetUrl) {
-        return res.status(400).json({ status: "error", message: "No Colab URL provided." });
+        return res.status(400).json({ status: "error", message: "No Backend URL provided." });
     }
     
     try {
@@ -80,5 +96,5 @@ app.post('/api/health', async (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
-    console.log(`Configured Colab API URL: ${process.env.COLAB_API_URL || 'Not set!'}`);
+    console.log(`Configured Backend API URL: ${process.env.BACKEND_API_URL || 'Not set!'}`);
 });
